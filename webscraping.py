@@ -8,9 +8,14 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import Select
 import config
 
+# Set up the browser options
+options = webdriver.ChromeOptions()
+options.add_argument('--incognito')
+options.add_argument('--headless')
+
 # Set up the browser driver
 chromeService = Service(config.chromeDrivePath)
-driver = webdriver.Chrome(service=chromeService)
+driver = webdriver.Chrome(service=chromeService, options=options)
 driver.get(config.url)
 
 wait = WebDriverWait(driver, 10)
@@ -36,20 +41,18 @@ try:
     # Wait a few seconds to give the rapport items a change to show up
     wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "span.Epic")))
 
-    # Results will be stored here
-    results = []
-
     # Load the content into BeautifulSoup
     html = BeautifulSoup(driver.page_source, features='html.parser')
 
     # Find all elements in the content matching the attrs and loop over them
     legendaryItems = html.findAll('span', attrs={'class': 'item Legendary'})
 
+    # Find all elements in the content matching the attrs and loop over them
+    epicItems = html.findAll('span', attrs={'class': 'item Epic'})
+
     # print the amount
-    if len(legendaryItems) > 0:
-        print('The script has found ' + str(len(legendaryItems)) + ' legendary items!!' )
-    else:
-        print('No legendary items have been found. :(')
+    print('The script has found ' + str(len(legendaryItems)) + ' legendary items and '
+          + str(len(epicItems)) + ' epic items.')
 except TimeoutException:
     print('No items have been found yet. :(')
 finally:
