@@ -48,10 +48,16 @@ wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "table.table")))
 nowUTC = datetime.utcnow()
 currentMinutes = nowUTC.minute
 
-while 55 > currentMinutes >= 30:
-    print(nowUTC.minute)
+# Set up lists for the results
+epicLoc = []
+legLoc = []
 
-    # TODO improve the script so it will tell the location as well
+# TODO make it so that it only sends message if something changes
+while 55 > currentMinutes >= 30:
+
+    resultLeg = '';
+    resultEpic = '';
+
     try:
         # Wait a few seconds to give the rapport items a change to show up
         wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "span.Epic")))
@@ -60,16 +66,39 @@ while 55 > currentMinutes >= 30:
         html = BeautifulSoup(driver.page_source, features='html.parser')
 
         # Find all elements in the content matching the attrs and loop over them
-        legendaryItems = html.findAll('span', attrs={'class': 'item Legendary'})
+        legItems = html.findAll('span', attrs={'class': 'item Legendary'})
+        for legendaryItem in legItems:
+
+            # Navigate to the zone column of the table row
+            item = legendaryItem.parent
+            card = item.previous_sibling.previous_sibling.previous_sibling
+            location = card.previous_sibling.previous_sibling.previous_sibling
+
+            # Save the location
+            legLoc.append(location.get_text())
+
+        # create legendary message
+        if len(legItems) > 0:
+            resultLeg = (str(len(legItems)) + ' Legendary rapport items have been found at the following locations: '
+                         + ', '.join(legLoc) + '. ')
 
         # Find all elements in the content matching the attrs and loop over them
         epicItems = html.findAll('span', attrs={'class': 'item Epic'})
-        
+        for epicItem in epicItems:
 
-        # print the amount
-        result = ('The script has found ' + str(len(legendaryItems)) + ' legendary items and '
-                  + str(len(epicItems)) + ' epic items.')
-        bot.send_message(config.chatIdList[0], result)
+            # Navigate to the zone column of the table row
+            item = epicItem.parent
+            card = item.previous_sibling.previous_sibling.previous_sibling
+            location = card.previous_sibling.previous_sibling.previous_sibling
+
+            # Save the location
+            epicLoc.append(location.get_text())
+
+        # create Epic message
+        resultEpic = (str(len(epicItems)) + ' Epic rapport items have been found at the following locations: '
+                      + ', '.join(epicLoc) + '.')
+
+        bot.send_message(config.chatIdList[0], resultLeg + resultEpic)
     except TimeoutException:
         bot.send_message(config.chatIdList[0], 'No items have been found yet. :(')
 
@@ -83,6 +112,3 @@ while 55 > currentMinutes >= 30:
 # Close the browser
 driver.quit()
 
-
-# Check if the upcoming merchants' table has this still next to the class b-ty9zezd20s
-# And check if the rapport merchant table has it as well or if it's different
