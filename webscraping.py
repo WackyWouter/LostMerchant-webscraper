@@ -6,7 +6,11 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import Select
+import telebot
 import config
+
+# Set up Telegram bot
+bot = telebot.TeleBot(config.botToken, parse_mode=None)
 
 # Set up the browser options
 options = webdriver.ChromeOptions()
@@ -51,10 +55,11 @@ try:
     epicItems = html.findAll('span', attrs={'class': 'item Epic'})
 
     # print the amount
-    print('The script has found ' + str(len(legendaryItems)) + ' legendary items and '
-          + str(len(epicItems)) + ' epic items.')
+    result = ('The script has found ' + str(len(legendaryItems)) + ' legendary items and '
+              + str(len(epicItems)) + ' epic items.')
+    bot.send_message(config.chatIdList[0], result);
 except TimeoutException:
-    print('No items have been found yet. :(')
+    bot.send_message(config.chatIdList[0], 'No items have been found yet. :(')
 finally:
     # Close the browser
     driver.quit()
