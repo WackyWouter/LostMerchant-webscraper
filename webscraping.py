@@ -11,111 +11,122 @@ import time
 import telebot
 import config
 
-# TODO maybe set up the telegram bot with handles in a separate file so that can constantly run
 # Set up Telegram bot
 bot = telebot.TeleBot(config.botToken, parse_mode=None)  # parse mode can be html or markdown
 
-# Set up the browser options
-options = webdriver.ChromeOptions()
-options.add_argument('--incognito')
-options.add_argument('--headless')
 
-# Set up the browser driver
-chromeService = Service(config.chromeDrivePath)
-driver = webdriver.Chrome(service=chromeService, options=options)
-driver.get(config.url)
+async def main():
+    # Set up the browser options
+    options = webdriver.ChromeOptions()
+    options.add_argument('--incognito')
+    options.add_argument('--headless')
 
-wait = WebDriverWait(driver, 10)
+    # Set up the browser driver
+    chrome_service = Service(config.chromeDrivePath)
+    driver = webdriver.Chrome(service=chrome_service, options=options)
+    driver.get(config.url)
 
-# Wait for the serverRegion select to be present
-wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "option[value='EUC']")))
+    wait = WebDriverWait(driver, 10)
 
-# Select server region
-serverSelect = Select(driver.find_element(by=By.ID, value='severRegion'))
-serverSelect.select_by_value('EUC')
+    # Wait for the serverRegion select to be present
+    wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "option[value='EUC']")))
 
-# Wait for the server select to be present
-wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "#server option")))
+    # Select server region
+    server_select = Select(driver.find_element(by=By.ID, value='severRegion'))
+    server_select.select_by_value('EUC')
 
-# Select server
-serverSelect = Select(driver.find_element(by=By.ID, value='server'))
-serverSelect.select_by_visible_text('Mokoko')
+    # Wait for the server select to be present
+    wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "#server option")))
 
-# Wait for the table to be present
-wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "table.table")))
+    # Select server
+    server_select = Select(driver.find_element(by=By.ID, value='server'))
+    server_select.select_by_visible_text('Mokoko')
 
-# Get current time in utc
-nowUTC = datetime.utcnow()
-currentMinutes = nowUTC.minute
+    # Wait for the table to be present
+    wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "table.table")))
 
-# Set up lists for the results
-epicLoc = []
-legLoc = []
+    # Get current time in utc
+    now_utc = datetime.utcnow()
+    current_minutes = now_utc.minute
 
-# TODO find a way to pick the right one when a merchant has multiple locations suggested
-while 55 > currentMinutes >= 30:
+    # Set up lists for the results
+    epic_loc = []
+    leg_loc = []
 
-    resultLeg = ''
-    resultEpic = ''
+    # TODO find a way to pick the right one when a merchant has multiple locations suggested
+    # Part of that is removing the earlier wrong suggestion if a new suggestion (correct one) comes in
+    while 55 > current_minutes >= 30:
 
-    foundNewItem = False
+        result_leg = ''
+        result_epic = ''
 
-    try:
-        # Wait a few seconds to give the rapport items a change to show up
-        wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "span.Epic")))
+        found_new_item = False
 
-        # Load the content into BeautifulSoup
-        html = BeautifulSoup(driver.page_source, features='html.parser')
+        try:
+            # Wait a few seconds to give the rapport items a change to show up
+            wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "span.Epic")))
 
-        # Find all elements in the content matching the attrs and loop over them
-        legItems = html.findAll('span', attrs={'class': 'item Legendary'})
-        for legendaryItem in legItems:
+            # Load the content into BeautifulSoup
+            html = BeautifulSoup(driver.page_source, features='html.parser')
 
-            # Navigate to the zone column of the table row
-            item = legendaryItem.parent
-            card = item.previous_sibling.previous_sibling.previous_sibling
-            location = card.previous_sibling.previous_sibling.previous_sibling
+            # Find all elements in the content matching the attrs and loop over them
+            leg_items = html.findAll('span', attrs={'class': 'item Legendary'})
+            for legendaryItem in leg_items:
 
-            # Save the location
-            if location.get_text() not in legLoc:
-                legLoc.append(location.get_text())
-                foundNewItem = True
+                # Navigate to the zone column of the table row
+                item = legendaryItem.parent
+                card = item.previous_sibling.previous_sibling.previous_sibling
+                location = card.previous_sibling.previous_sibling.previous_sibling
 
-        # create legendary message
-        if len(legItems) > 0:
-            resultLeg = (str(len(legItems)) + ' Legendary rapport items have been found at the following locations: '
-                         + ', '.join(legLoc) + '. ')
+                # Save the location
+                if location.get_text() not in leg_loc:
+                    leg_loc.append(location.get_text())
+                    found_new_item = True
 
-        # Find all elements in the content matching the attrs and loop over them
-        epicItems = html.findAll('span', attrs={'class': 'item Epic'})
-        for epicItem in epicItems:
+            # create legendary message
+            if len(leg_items) > 0:
+                result_leg = (
+                            str(len(leg_items)) + ' Legendary rapport items have been found at the following locations: '
+                            + ', '.join(leg_loc) + '. ')
 
-            # Navigate to the zone column of the table row
-            item = epicItem.parent
-            card = item.previous_sibling.previous_sibling.previous_sibling
-            location = card.previous_sibling.previous_sibling.previous_sibling
+            # Find all elements in the content matching the attrs and loop over them
+            epic_items = html.findAll('span', attrs={'class': 'item Epic'})
+            for epicItem in epic_items:
 
-            # Save the location
-            if location.get_text() not in epicLoc:
-                epicLoc.append(location.get_text())
-                foundNewItem = True
+                # Navigate to the zone column of the table row
+                item = epicItem.parent
+                card = item.previous_sibling.previous_sibling.previous_sibling
+                location = card.previous_sibling.previous_sibling.previous_sibling
 
-        # create Epic message
-        resultEpic = (str(len(epicItems)) + ' Epic rapport items have been found at the following locations: '
-                      + ', '.join(epicLoc) + '.')
+                # Save the location
+                if location.get_text() not in epic_loc:
+                    epic_loc.append(location.get_text())
+                    found_new_item = True
 
-        if foundNewItem:
-            bot.send_message(config.chatIdList[0], resultLeg + resultEpic)
-    except TimeoutException:
-        bot.send_message(config.chatIdList[0], 'No items have been found yet. :(')
+            # create Epic message
+            result_epic = (str(len(epic_items)) + ' Epic rapport items have been found at the following locations: '
+                          + ', '.join(epic_loc) + '.')
 
-    # Sleep for two minutes because we don't need to check every second
-    time.sleep(120)
+            if found_new_item:
+                bot.send_message(config.chatIdList[0], result_leg + result_epic)
+        except TimeoutException:
+            bot.send_message(config.chatIdList[0], 'No items have been found yet. :(')
 
-    # Update the time
-    nowUTC = datetime.utcnow()
-    currentMinutes = nowUTC.minute
+        # Sleep for two minutes because we don't need to check every second
+        time.sleep(120)
 
-# Close the browser
-driver.quit()
+        # Update the time
+        now_utc = datetime.utcnow()
+        current_minutes = now_utc.minute
+
+    # Close the browser
+    driver.quit()
+
+if __name__ == '__main__':
+    main()
+
+
+
+
+
 
