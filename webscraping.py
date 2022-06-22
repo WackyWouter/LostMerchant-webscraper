@@ -52,11 +52,13 @@ currentMinutes = nowUTC.minute
 epicLoc = []
 legLoc = []
 
-# TODO make it so that it only sends message if something changes
+# TODO find a way to pick the right one when a merchant has multiple locations suggested
 while 55 > currentMinutes >= 30:
 
-    resultLeg = '';
-    resultEpic = '';
+    resultLeg = ''
+    resultEpic = ''
+
+    foundNewItem = False
 
     try:
         # Wait a few seconds to give the rapport items a change to show up
@@ -75,7 +77,9 @@ while 55 > currentMinutes >= 30:
             location = card.previous_sibling.previous_sibling.previous_sibling
 
             # Save the location
-            legLoc.append(location.get_text())
+            if location.get_text() not in legLoc:
+                legLoc.append(location.get_text())
+                foundNewItem = True
 
         # create legendary message
         if len(legItems) > 0:
@@ -92,13 +96,16 @@ while 55 > currentMinutes >= 30:
             location = card.previous_sibling.previous_sibling.previous_sibling
 
             # Save the location
-            epicLoc.append(location.get_text())
+            if location.get_text() not in epicLoc:
+                epicLoc.append(location.get_text())
+                foundNewItem = True
 
         # create Epic message
         resultEpic = (str(len(epicItems)) + ' Epic rapport items have been found at the following locations: '
                       + ', '.join(epicLoc) + '.')
 
-        bot.send_message(config.chatIdList[0], resultLeg + resultEpic)
+        if foundNewItem:
+            bot.send_message(config.chatIdList[0], resultLeg + resultEpic)
     except TimeoutException:
         bot.send_message(config.chatIdList[0], 'No items have been found yet. :(')
 
