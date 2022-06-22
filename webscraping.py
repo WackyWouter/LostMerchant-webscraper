@@ -15,7 +15,7 @@ import config
 bot = telebot.TeleBot(config.botToken, parse_mode=None)  # parse mode can be html or markdown
 
 
-async def main():
+def main():
     # Set up the browser options
     options = webdriver.ChromeOptions()
     options.add_argument('--incognito')
@@ -55,6 +55,7 @@ async def main():
 
     # TODO find a way to pick the right one when a merchant has multiple locations suggested
     # Part of that is removing the earlier wrong suggestion if a new suggestion (correct one) comes in
+    # TODO make it so that it runs continuously
     while 55 > current_minutes >= 30:
 
         result_leg = ''
@@ -86,7 +87,8 @@ async def main():
             # create legendary message
             if len(leg_items) > 0:
                 result_leg = (
-                            str(len(leg_items)) + ' Legendary rapport items have been found at the following locations: '
+                            str(len(leg_items)) +
+                            ' Legendary rapport items have been found at the following locations: '
                             + ', '.join(leg_loc) + '. ')
 
             # Find all elements in the content matching the attrs and loop over them
