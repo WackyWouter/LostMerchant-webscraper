@@ -7,15 +7,19 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import Select
 from datetime import datetime
-import time
-import telebot
+import asyncio
+from telebot.async_telebot import AsyncTeleBot
 import config
 
 # Set up Telegram bot
-bot = telebot.TeleBot(config.botToken, parse_mode=None)  # parse mode can be html or markdown
+bot = AsyncTeleBot(config.botToken)
+
+@bot.message_handler(commands=['help', 'start'])
+async def send_welcome(message):
+    await bot.reply_to(message, "Hi! This is a test!")
 
 
-def main():
+async def item_scraper():
     # Set up the browser options
     options = webdriver.ChromeOptions()
     options.add_argument('--incognito')
@@ -87,9 +91,9 @@ def main():
             # create legendary message
             if len(leg_items) > 0:
                 result_leg = (
-                            str(len(leg_items)) +
-                            ' Legendary rapport items have been found at the following locations: '
-                            + ', '.join(leg_loc) + '. ')
+                        str(len(leg_items)) +
+                        ' Legendary rapport items have been found at the following locations: '
+                        + ', '.join(leg_loc) + '. ')
 
             # Find all elements in the content matching the attrs and loop over them
             epic_items = html.findAll('span', attrs={'class': 'item Epic'})
@@ -107,15 +111,15 @@ def main():
 
             # create Epic message
             result_epic = (str(len(epic_items)) + ' Epic rapport items have been found at the following locations: '
-                          + ', '.join(epic_loc) + '.')
+                           + ', '.join(epic_loc) + '.')
 
             if found_new_item:
-                bot.send_message(config.chatIdList[0], result_leg + result_epic)
+                await bot.send_message(config.chatIdList[0], result_leg + result_epic)
         except TimeoutException:
-            bot.send_message(config.chatIdList[0], 'No items have been found yet. :(')
+            await bot.send_message(config.chatIdList[0], 'No items have been found yet. :(')
 
         # Sleep for two minutes because we don't need to check every second
-        time.sleep(120)
+        await asyncio.sleep(120)
 
         # Update the time
         now_utc = datetime.utcnow()
@@ -124,11 +128,9 @@ def main():
     # Close the browser
     driver.quit()
 
+async def main():
+    await asyncio.gather(bot.infinity_polling(), item_scraper())
+
+
 if __name__ == '__main__':
-    main()
-
-
-
-
-
-
+    asyncio.run(main())
