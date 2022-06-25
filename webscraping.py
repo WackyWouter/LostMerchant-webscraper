@@ -214,7 +214,7 @@ async def item_scraper():
 
 async def main():
     await asyncio.gather(
-        # item_scraper(),
+        item_scraper(),
         bot.infinity_polling(timeout=60, request_timeout=60)
     )
 
