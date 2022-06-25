@@ -8,28 +8,89 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import Select
 from datetime import datetime
 import asyncio
+import aiofiles
 from telebot.async_telebot import AsyncTeleBot
 import config
 
 # Set up Telegram bot
 bot = AsyncTeleBot(config.botToken)
 
+# TODO do some proper testing of everything together
 
-@bot.message_handler(commands=['help', 'start'])
+# Handler for the /help message
+@bot.message_handler(commands=['help'])
 async def send_welcome(message):
-    await bot.reply_to(message, "Hi! This is a test!")
+    await bot.reply_to(message, "Hi! I'm the Lost Merchant bot. You can start receiving updates from me by sending "
+                                "/start or stop receiving updates by sending /stop")
+
+# Handler for the /start message
+@bot.message_handler(commands=['start'])
+async def add_user(message):
+    # Read the user ids file
+    user_ids = await read_file()
+
+    # Save the current user's id as a string
+    current_user_id = str(message.from_user.id)
+
+    # Check if the current user's id is not already saved in the user_ids.txt file
+    if current_user_id not in user_ids:
+        # If the current user's id is not saved add it to the list and write the new list to the file
+        user_ids.append(current_user_id)
+        user_ids_str = ','.join(user_ids)
+        await write_file(user_ids_str)
+
+        # Let the user know that he has been added to the list
+        await bot.reply_to(message, "Hi " + message.from_user.username + ", you wil now be receiving updates from me.")
+    else:
+        # Tell the user that he is already receiving updates
+        await bot.reply_to(message, "Hi " + message.from_user.username + ", you are already receiving updates from me.")
 
 
+# Handler for the /stop message
+@bot.message_handler(commands=['stop'])
+async def remove_user(message):
+    # Read the user ids file
+    user_ids = await read_file()
+
+    # Save the current user's id as a string
+    current_user_id = str(message.from_user.id)
+
+    # Check if the current user's id is saved in the user_ids.txt file
+    if current_user_id in user_ids:
+        # If the current user's id is saved remove it from the list and write the new list to the file
+        user_ids.remove(current_user_id)
+        user_ids_str = ','.join(user_ids)
+        await write_file(user_ids_str)
+
+    # Tell the user that he is not going to receive anymore updates
+    await bot.reply_to(message, "Hi " + message.from_user.username + ", you will now stop receiving updates from me.")
+
+
+# Read the user_ids.txt file and return an array of user ids
+async def read_file():
+    async with aiofiles.open('user_ids.txt', mode='r') as f:
+        user_ids = await f.read()
+        return user_ids.split(',')
+
+
+# Write a comma separated string of user ids to the user_ids.txt file
+async def write_file(user_ids):
+    async with aiofiles.open('user_ids.txt', mode='w') as f:
+        await f.write(user_ids)
+
+
+# Wait until a designated time
 async def wait_until(minute_mark):
     while True:
+        # Get the current minutes
         now_utc = datetime.utcnow()
         current_minutes = now_utc.minute
 
-        print('current-Minutes: ' + str(current_minutes))
-
+        # Calculate the difference in minutes and wait half that time
         diff_in_seconds = (minute_mark - current_minutes) * 60
         await asyncio.sleep(diff_in_seconds / 2)
-        print('diff in seconds: ' + str(diff_in_seconds))
+
+        # If the diff is smaller than 0.1 we have reached the designated time
         if diff_in_seconds <= 0.1:
             return
 
@@ -78,8 +139,6 @@ async def item_scraper():
         # Update the time
         now_utc = datetime.utcnow()
         current_minutes = now_utc.minute
-
-        print('start of loop current minutes: ' + str(current_minutes))
 
         while 55 > current_minutes >= 30:
 
@@ -146,8 +205,6 @@ async def item_scraper():
             now_utc = datetime.utcnow()
             current_minutes = now_utc.minute
 
-        print('after loop current minutes: ' + str(current_minutes))
-
         # Sleep for 6min to make sure we are past the hour mark to make calculations easier
         await asyncio.sleep(360)
 
@@ -156,7 +213,10 @@ async def item_scraper():
 
 
 async def main():
-    await asyncio.gather(bot.infinity_polling(timeout=60, request_timeout=60), item_scraper())
+    await asyncio.gather(
+        # item_scraper(),
+        bot.infinity_polling(timeout=60, request_timeout=60)
+    )
 
 
 if __name__ == '__main__':
