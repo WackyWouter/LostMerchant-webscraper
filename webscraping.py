@@ -15,7 +15,6 @@ import config
 # Set up Telegram bot
 bot = AsyncTeleBot(config.botToken)
 
-# TODO do some proper testing of everything together
 
 # Handler for the /help message
 @bot.message_handler(commands=['help'])
@@ -79,6 +78,17 @@ async def write_file(user_ids):
         await f.write(user_ids)
 
 
+# Send provided message to saved user ids
+async def send_message(message):
+    # Get the user ids
+    user_ids_list = await read_file()
+
+    # Loop over the user ids making sure they are not empty and then send the message
+    for user_id in user_ids_list:
+        if user_id != '':
+            await bot.send_message(user_id, message)
+
+
 # Wait until a designated time
 async def wait_until(minute_mark):
     while True:
@@ -125,14 +135,6 @@ async def item_scraper():
     # Wait for the table to be present
     wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "table.table")))
 
-    # Get current time in utc
-    now_utc = datetime.utcnow()
-    current_minutes = now_utc.minute
-
-    # Set up lists for the results
-    epic_loc = []
-    leg_loc = []
-
     # TODO find a way to pick the right one when a merchant has multiple locations suggested
     # Part of that is removing the earlier wrong suggestion if a new suggestion (correct one) comes in
     while True:
@@ -140,10 +142,13 @@ async def item_scraper():
         now_utc = datetime.utcnow()
         current_minutes = now_utc.minute
 
+        # Set up lists for the results and reset it every loop
+        epic_loc = []
+        leg_loc = []
+
         while 55 > current_minutes >= 30:
 
             result_leg = ''
-            result_epic = ''
 
             found_new_item = False
 
@@ -194,9 +199,9 @@ async def item_scraper():
                                + ', '.join(epic_loc) + '.')
 
                 if found_new_item:
-                    await bot.send_message(config.chatIdList[0], result_leg + result_epic)
+                    await send_message(result_leg + result_epic)
             except TimeoutException:
-                await bot.send_message(config.chatIdList[0], 'No items have been found yet. :(')
+                print('no epic items found yet')
 
             # Sleep for two minutes because we don't need to check every second
             await asyncio.sleep(120)
