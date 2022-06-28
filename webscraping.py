@@ -7,13 +7,13 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import Select
 from datetime import datetime
+import os
 import asyncio
 import aiofiles
 from telebot.async_telebot import AsyncTeleBot
-import config
 
 # Set up Telegram bot
-bot = AsyncTeleBot(config.botToken)
+bot = AsyncTeleBot(os.environ.get('BOT_TOKEN'))
 
 
 # Handler for the /help message
@@ -21,6 +21,7 @@ bot = AsyncTeleBot(config.botToken)
 async def send_welcome(message):
     await bot.reply_to(message, "Hi! I'm the Lost Merchant bot. You can start receiving updates from me by sending "
                                 "/start or stop receiving updates by sending /stop")
+
 
 # Handler for the /start message
 @bot.message_handler(commands=['start'])
@@ -109,12 +110,14 @@ async def item_scraper():
     # Set up the browser options
     options = webdriver.ChromeOptions()
     options.add_argument('--incognito')
+    options.binary_location = os.environ.get('GOOGLE_CHROME_BIN')
     options.add_argument('--headless')
+    options.add_argument('--no-sandbox')
 
     # Set up the browser driver
-    chrome_service = Service(config.chromeDrivePath)
+    chrome_service = Service(os.environ.get('CHROMEDRIVER_PATH'))
     driver = webdriver.Chrome(service=chrome_service, options=options)
-    driver.get(config.url)
+    driver.get(os.environ.get('URL'))
 
     wait = WebDriverWait(driver, 10)
 
