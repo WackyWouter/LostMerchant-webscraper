@@ -79,6 +79,12 @@ async def write_file(user_ids):
         await f.write(user_ids)
 
 
+# Write an empty string to the file to make sure it gets created if it does not exist yet
+async def check_file():
+    async with aiofiles.open('test.txt', mode='w') as f:
+        await f.write('')
+
+
 # Send provided message to saved user ids
 async def send_message(message):
     # Get the user ids
@@ -86,7 +92,7 @@ async def send_message(message):
 
     # Loop over the user ids making sure they are not empty and then send the message
     for user_id in user_ids_list:
-        if user_id != '':
+        if user_id.strip() != '':
             await bot.send_message(user_id, message)
 
 
@@ -221,6 +227,7 @@ async def item_scraper():
 
 
 async def main():
+    await check_file()
     await asyncio.gather(
         item_scraper(),
         bot.infinity_polling(timeout=60, request_timeout=60)
