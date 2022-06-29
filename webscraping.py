@@ -81,8 +81,8 @@ async def write_file(user_ids):
 
 # Write an empty string to the file to make sure it gets created if it does not exist yet
 async def check_file():
-    async with aiofiles.open('test.txt', mode='w') as f:
-        await f.write('')
+    with open("user_ids.txt", "a+") as f:
+        f.write('')
 
 
 # Send provided message to saved user ids
