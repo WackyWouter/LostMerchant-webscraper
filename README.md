@@ -1,5 +1,3 @@
-# LostMerchant-webscraper
-
 This is a hobby project to create notification for when a legendary item pops up on [lostmerchants](https://lostmerchants.com). 
 Lostmerchants is a website that keeps track of the wandering merchants in the game Lost Ark.
 This was for me to try my hand at webscraping and creating a telegram bot.
